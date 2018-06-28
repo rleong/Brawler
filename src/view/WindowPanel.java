@@ -3,19 +3,16 @@ package view;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Container;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowListener;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
-import controller.PanelSwitch;
-import controller.exitListener;
-import model.Player;
+import model.ButtonType;
+import model.PanelType;
 
 public class WindowPanel {
 
@@ -31,12 +28,10 @@ public class WindowPanel {
 	private JPanel windowOptions;
 	
 	// Host Information
-	private Player hostPlayer;
 	
-	public WindowPanel(String panelName, Player hostPlayer) {
+	public WindowPanel(String panelName) {
 		//Set all the values
 		this.panelName = panelName;
-		this.hostPlayer = hostPlayer;
 		displayMessage = "Welcome to Brawler! Made by Russell Leong.";
 		panelState = PanelType.MAINPANEL;
 	}
@@ -44,13 +39,19 @@ public class WindowPanel {
 	// ------- Methods ------- 
 	
 	// Setups Frame
-	public void setUp() {
+	public void setUp(ActionListener mainStart, ActionListener mainJoin, ActionListener mainOptions,
+			ActionListener joinStart, ActionListener joinCancel, ActionListener optionsStart,
+			ActionListener optionsCancel, ActionListener charStart, ActionListener charCancel,
+			ActionListener mapStart, ActionListener mapCancel, ActionListener gameCancel,
+			ActionListener resultCancel, WindowListener exitListener) {
 		frame = new JFrame(this.panelName);
-		frame.addWindowListener(new exitListener());
+		frame.addWindowListener(exitListener);
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
-		setupPanels(frame.getContentPane());
+		setupPanels(frame.getContentPane(), mainStart, mainJoin, mainOptions, joinStart, joinCancel,
+				optionsStart, optionsCancel, charStart, charCancel, mapStart, mapCancel, gameCancel,
+				resultCancel);
 		
 		refreshPanel();
 	}
@@ -63,17 +64,56 @@ public class WindowPanel {
 	}
 	
 	// Switch Panels
-	public void switchPanels(PanelType panelType, Boolean gameStart) {
+	public void switchPanels(ButtonType button) {
+		boolean gameState = false;
+		
+		switch(button) {
+		case START:
+			if(panelState.equals(PanelType.MAINPANEL)) {
+				panelState = PanelType.CHARACTERPANEL;
+			}
+			else if (panelState.equals(PanelType.CHARACTERPANEL)) {
+				panelState = PanelType.MAPPANEL;
+			}
+			else if (panelState.equals(PanelType.MAPPANEL)) {
+				panelState = PanelType.GAMEPANEL;
+				gameState = true;
+			}
+			else {
+				panelState = PanelType.MAINPANEL;
+			}
+			break;
+		case JOIN:
+			panelState = PanelType.JOINPANEL;
+			break;
+		case OPTIONS:
+			panelState = PanelType.OPTIONSPANEL;
+			break;
+		case CANCEL:
+			if (panelState.equals(PanelType.MAPPANEL)) {
+				panelState = PanelType.CHARACTERPANEL;
+			}
+			else if (panelState.equals(PanelType.GAMEPANEL)) {
+				panelState = PanelType.CHARACTERPANEL;
+				gameState = false;
+			}
+			else {
+				panelState = PanelType.MAINPANEL;
+			}
+			break;
+			default:
+				panelState = PanelType.MAINPANEL;
+		}
+		
 		CardLayout temp0 = (CardLayout)(windowOptions.getLayout()),
 				temp1 = (CardLayout)(windowScreen.getLayout());
-		temp0.show(windowOptions, panelType.toString());
-		if(gameStart) {
+		temp0.show(windowOptions, panelState.toString());
+		if(gameState) {
 			temp1.show(windowScreen, PanelType.TEXTSCREEN.toString());
 		}else {
 			temp1.show(windowScreen, PanelType.GAMESCREEN.toString());
 		}
-		this.panelState = panelType;
-		addDisplayMessage(panelType.toString());
+		addDisplayMessage(panelState.toString());
 		refreshPanel();
 	}
 	
@@ -90,7 +130,11 @@ public class WindowPanel {
 	}
 	
 	// Used to make a nice CardLayout for the frame
-	public void setupPanels(Container pane) {
+	public void setupPanels(Container pane, ActionListener mainStart, ActionListener mainJoin, ActionListener mainOptions,
+			ActionListener joinStart, ActionListener joinCancel, ActionListener optionsStart,
+			ActionListener optionsCancel, ActionListener charStart, ActionListener charCancel,
+			ActionListener mapStart, ActionListener mapCancel, ActionListener gameCancel,
+			ActionListener resultCancel) {
 		windowScreen = new JPanel(new CardLayout());
 		windowOptions = new JPanel(new CardLayout());
 		
@@ -105,61 +149,61 @@ public class WindowPanel {
 		//Main Menu
 		JPanel mainMenuPanel = new JPanel();
 		JButton startButton = new JButton("Start");
-		startButton.addActionListener(new PanelSwitch(this, PanelType.MAINPANEL, ButtonType.START));
+		startButton.addActionListener(mainStart);
 		mainMenuPanel.add(startButton);
 		JButton joinButton = new JButton("Join");
-		joinButton.addActionListener(new PanelSwitch(this, PanelType.MAINPANEL, ButtonType.JOIN));
+		joinButton.addActionListener(mainJoin);
 		mainMenuPanel.add(joinButton);
 		JButton optionsButton = new JButton("Options");
-		optionsButton.addActionListener(new PanelSwitch(this, PanelType.MAINPANEL, ButtonType.OPTIONS));
+		optionsButton.addActionListener(mainOptions);
 		mainMenuPanel.add(optionsButton);
 		
 		//Join Screen
 		JPanel joinPanel = new JPanel();
 		JButton joinCancelButton = new JButton("Cancel");
-		joinCancelButton.addActionListener(new PanelSwitch(this, PanelType.JOINPANEL, ButtonType.CANCEL));
+		joinCancelButton.addActionListener(joinCancel);
 		joinPanel.add(joinCancelButton);
 		JButton joinStartButton = new JButton("Confirm");
-		joinStartButton.addActionListener(new PanelSwitch(this, PanelType.JOINPANEL, ButtonType.START));
+		joinStartButton.addActionListener(joinStart);
 		joinPanel.add(joinStartButton);
 		
 		//Options Screen
 		JPanel optionsPanel = new JPanel();
 		JButton optionsCancelButton = new JButton("Cancel");
-		optionsCancelButton.addActionListener(new PanelSwitch(this, PanelType.OPTIONSPANEL, ButtonType.CANCEL));
+		optionsCancelButton.addActionListener(optionsCancel);
 		optionsPanel.add(optionsCancelButton);
 		JButton optionsStartButton = new JButton("Confirm");
-		optionsStartButton.addActionListener(new PanelSwitch(this, PanelType.OPTIONSPANEL, ButtonType.START));
+		optionsStartButton.addActionListener(optionsStart);
 		optionsPanel.add(optionsStartButton);		
 		
 		//Character Selection Screen
 		JPanel characterPanel = new JPanel();
 		JButton charCancelButton = new JButton("Cancel");
-		charCancelButton.addActionListener(new PanelSwitch(this, PanelType.CHARACTERPANEL, ButtonType.CANCEL));
+		charCancelButton.addActionListener(charCancel);
 		characterPanel.add(charCancelButton);
 		JButton charStartButton = new JButton("Confirm");
-		charStartButton.addActionListener(new PanelSwitch(this, PanelType.CHARACTERPANEL, ButtonType.START));
+		charStartButton.addActionListener(charStart);
 		characterPanel.add(charStartButton);
 		
 		//Map Selection Screen
 		JPanel mapPanel = new JPanel();
 		JButton mapCancelButton = new JButton("Cancel");
-		mapCancelButton.addActionListener(new PanelSwitch(this, PanelType.MAPPANEL, ButtonType.CANCEL));
+		mapCancelButton.addActionListener(mapCancel);
 		mapPanel.add(mapCancelButton);
 		JButton mapStartButton = new JButton("Start");
-		mapStartButton.addActionListener(new PanelSwitch(this, PanelType.MAPPANEL, ButtonType.START));
+		mapStartButton.addActionListener(mapStart);
 		mapPanel.add(mapStartButton);
 		
 		//Game Screen
 		JPanel gamePanel = new JPanel();
 		JButton gameCancelButton = new JButton("Forfeit");
-		gameCancelButton.addActionListener(new PanelSwitch(this, PanelType.GAMEPANEL, ButtonType.CANCEL));
+		gameCancelButton.addActionListener(gameCancel);
 		gamePanel.add(gameCancelButton);
 		
 		//Results
 		JPanel resultsPanel = new JPanel();
 		JButton resultsCancelButton = new JButton("Return to Main Menu");
-		resultsCancelButton.addActionListener(new PanelSwitch(this, PanelType.RESULTPANEL, ButtonType.CANCEL));
+		resultsCancelButton.addActionListener(resultCancel);
 		resultsPanel.add(resultsCancelButton);
 		
 		//Add everything and set their enums
